@@ -230,8 +230,12 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    // Create reset URL
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    // Create reset URL - Robust version
+    let frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    
+    // Remove trailing slash if present to prevent double slashes in URL
+    frontendUrl = frontendUrl.replace(/\/+$/, "");
+    
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     if (process.env.NODE_ENV !== "production") {
@@ -256,7 +260,11 @@ export const forgotPassword = async (req, res) => {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save();
-      return res.status(500).json({ message: "Email could not be sent" });
+      
+      console.error("EMAIL SENDING FAILED:", _error.message);
+      return res.status(500).json({ 
+        message: "Email could not be sent. Please check SMTP configuration (EMAIL_USER/EMAIL_PASS)." 
+      });
     }
   } catch (_error) {
     res.status(500).json({ message: _error.message });
